@@ -69,6 +69,18 @@ async function handleSignOut() {
           >
             Profile
           </NuxtLink>
+          <NuxtLink 
+            to="/products" 
+            class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+          >
+            Products
+          </NuxtLink>
+          <NuxtLink 
+            to="/cart" 
+            class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+          >
+            View Cart
+          </NuxtLink>
           <button 
             @click="handleSignOut" 
             class="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"

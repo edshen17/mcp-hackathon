@@ -9,6 +9,7 @@ export default defineNuxtConfig({
     '@nuxtjs/color-mode',
     '@vite-pwa/nuxt',
     '@nuxt/eslint',
+    '@nuxtjs/supabase',
   ],
 
   devtools: {
@@ -74,4 +75,8 @@ export default defineNuxtConfig({
   },
 
   pwa,
+
+  supabase: {
+    redirectOptions: { login: '/log-in', callback: '/confirm', exclude: ['/', '/log-in', '/sign-up'], cookieRedirect: true },
+  },
 })

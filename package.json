@@ -39,5 +39,8 @@
     "@nuxt/devtools": "catalog:build",
     "unplugin": "catalog:build",
     "vite": "catalog:build"
+  },
+  "dependencies": {
+    "@nuxtjs/supabase": "^1.5.1"
   }
 }

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm search @modelcontextprotocol/sdk)",
+      "Bash(npm install:*)",
+      "Bash(pnpm add:*)",
+      "Bash(chmod:*)",
+      "Bash(npm view @modelcontextprotocol/sdk)",
+      "Bash(npm view:*)",
+      "Bash(mkdir:*)"
+    ],
+    "deny": []
+  }
+}

@@ -38,11 +38,9 @@ async function signUp() {
       email: email.value,
       password: password.value,
       options: {
-        // Skip email verification
-        emailRedirectTo: `${window.location.origin}/products`,
         data: {
-          email_confirmed: true
-        }
+          email_confirmed: true,
+        },
       },
     })
 
@@ -51,37 +49,42 @@ async function signUp() {
 
     // Auto sign in after registration
     if (data && data.user) {
-      // First, try to create a user in the users table
+      console.log('User created in auth system, attempting to create profile')
+
+      // Use our server API to create the user profile
       try {
-        // Insert the user into the users table directly
-        const { error: insertError } = await client
-          .from('users')
-          .insert({
-            id: data.user.id,
+        // Call our server endpoint to create the user in the users table
+        const profileResult = await $fetch('/api/create-user', {
+          method: 'POST',
+          body: {
+            userId: data.user.id,
             email: email.value,
             name: email.value.split('@')[0],
-          })
-          
-        if (insertError) {
-          console.warn('Could not insert user into users table:', insertError)
+          },
+        })
+
+        console.log('Profile creation result:', profileResult)
+
+        if (!profileResult.success) {
+          console.warn('Could not create user profile:', profileResult.error)
         }
         else {
-          console.log('User successfully added to users table')
+          console.log('User profile created successfully')
         }
-      } 
+      }
       catch (e) {
         console.error('Error creating user profile:', e)
       }
-      
+
       // Sign in the user
       const { error: signInError } = await client.auth.signInWithPassword({
         email: email.value,
         password: password.value,
       })
-      
+
       if (signInError)
         throw signInError
-        
+
       // Redirect to products page
       router.push('/products')
     }

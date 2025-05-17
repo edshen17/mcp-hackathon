@@ -16,29 +16,35 @@ const userProfile = ref<any>(null)
 
 // Load user profile on mount
 onMounted(async () => {
-  if (user.value) {
-    try {
-      // Try to fetch the user from the users table
-      const { data, error } = await client
-        .from('users')
-        .select('*')
-        .eq('id', user.value.id)
-        .single()
-        
-      if (error) {
-        console.error('Error loading user profile:', error)
-      } else if (data) {
-        userProfile.value = data
-        // If we have a name in the profile, use it
-        if (data.name) {
-          displayName.value = data.name
-          userStore.setNewName(data.name)
-        }
+  try {
+    console.log('Loading profile page, ensuring user profile exists')
+    
+    // Call our server endpoint to ensure a profile exists
+    const result = await $fetch('/api/ensure-profile', {
+      method: 'GET'
+    })
+    
+    console.log('Profile ensure result:', result)
+    
+    if (result.success && result.user) {
+      userProfile.value = result.user
+      
+      // If we have a name in the profile, use it
+      if (result.user.name) {
+        displayName.value = result.user.name
+        userStore.setNewName(result.user.name)
       }
-    } 
-    catch (error) {
-      console.error('Failed to load user profile:', error)
+      
+      if (result.action === 'created') {
+        console.log('Created new user profile')
+        updateMessage.value = 'Your profile has been created! You can update your display name below.'
+      }
+    } else {
+      console.error('Error ensuring user profile:', result.error)
     }
+  } 
+  catch (error) {
+    console.error('Failed to load user profile:', error)
   }
 })
 

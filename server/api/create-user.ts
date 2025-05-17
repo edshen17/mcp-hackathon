@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
     const { data, error } = await client
       .from('users')
       .insert({
-        id: body.id,
+        id: body.userId, // Changed from body.id to body.userId to match sign-up.vue
         email: body.email,
         created_at: new Date().toISOString(),
       })

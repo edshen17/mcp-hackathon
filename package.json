@@ -30,6 +30,7 @@
     "eslint-plugin-format": "catalog:dev",
     "nuxt": "catalog:build",
     "pinia": "catalog:frontend",
+    "supabase": "^2.22.12",
     "typescript": "catalog:dev",
     "unocss": "catalog:build",
     "vue": "catalog:frontend",

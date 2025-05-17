@@ -6,16 +6,56 @@ definePageMeta({
 
 const user = useSupabaseUser()
 const userStore = useUserStore()
+const client = useSupabaseClient()
 
 // Form fields for updating profile
 const displayName = ref(userStore.savedName)
 const updateMessage = ref('')
 const isUpdating = ref(false)
+const userProfile = ref<any>(null)
+
+// Load user profile on mount
+onMounted(async () => {
+  if (user.value) {
+    try {
+      // Try to fetch the user from the users table
+      const { data, error } = await client
+        .from('users')
+        .select('*')
+        .eq('id', user.value.id)
+        .single()
+        
+      if (error) {
+        console.error('Error loading user profile:', error)
+      } else if (data) {
+        userProfile.value = data
+        // If we have a name in the profile, use it
+        if (data.name) {
+          displayName.value = data.name
+          userStore.setNewName(data.name)
+        }
+      }
+    } 
+    catch (error) {
+      console.error('Failed to load user profile:', error)
+    }
+  }
+})
 
 async function updateProfile() {
   try {
     isUpdating.value = true
     updateMessage.value = ''
+    
+    // Update the name in the database
+    const { error } = await client
+      .from('users')
+      .update({ 
+        name: displayName.value 
+      })
+      .eq('id', user.value?.id)
+      
+    if (error) throw error
     
     // Update the name in the store
     userStore.setNewName(displayName.value)

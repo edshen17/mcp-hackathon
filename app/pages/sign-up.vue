@@ -51,6 +51,29 @@ async function signUp() {
 
     // Auto sign in after registration
     if (data && data.user) {
+      // First, try to create a user in the users table
+      try {
+        // Insert the user into the users table directly
+        const { error: insertError } = await client
+          .from('users')
+          .insert({
+            id: data.user.id,
+            email: email.value,
+            name: email.value.split('@')[0],
+          })
+          
+        if (insertError) {
+          console.warn('Could not insert user into users table:', insertError)
+        }
+        else {
+          console.log('User successfully added to users table')
+        }
+      } 
+      catch (e) {
+        console.error('Error creating user profile:', e)
+      }
+      
+      // Sign in the user
       const { error: signInError } = await client.auth.signInWithPassword({
         email: email.value,
         password: password.value,

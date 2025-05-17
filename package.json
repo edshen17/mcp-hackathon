@@ -42,6 +42,9 @@
     "vite": "catalog:build"
   },
   "dependencies": {
-    "@nuxtjs/supabase": "^1.5.1"
+    "@langchain/anthropic": "^0.3.20",
+    "@nuxtjs/supabase": "^1.5.1",
+    "dotenv": "^16.5.0",
+    "mcp-use": "^0.0.6"
   }
 }

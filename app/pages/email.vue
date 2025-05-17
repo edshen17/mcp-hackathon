@@ -1,27 +1,3 @@
-<template>
-  <div class="form-container">
-    <div v-if="loading" class="loading-overlay">
-      <div class="spinner"></div>
-      <span>Submitting...</span>
-    </div>
-    <label>
-      Email:
-      <input v-model="email" type="email" placeholder="Enter your email" @input="validateForm" :disabled="loading" />
-    </label>
-    <label>
-      Problem Description:
-      <textarea v-model="issue" placeholder="Describe your issue" @input="validateForm" :disabled="loading"></textarea>
-    </label>
-    <button 
-      @click="submitForm" 
-      :disabled="!isValid || loading"
-      :class="{ disabled: !isValid || loading }"
-    >
-      Submit
-    </button>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref } from 'vue'
 
@@ -32,7 +8,7 @@ const loading = ref(false)
 
 function validateEmail(emailStr: string) {
   // Simple email regex
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr)
+  return /^[^\s@]+@[^\s@][^\s.@]*\.[^\s@]+$/.test(emailStr)
 }
 
 function validateForm() {
@@ -40,16 +16,62 @@ function validateForm() {
 }
 
 async function submitForm() {
-  if (!isValid.value) return
+  if (!isValid.value)
+    return
   loading.value = true
-  // Simulate async submit
-  await new Promise(resolve => setTimeout(resolve, 1800))
-  console.log('Email:', email.value)
-  console.log('Issue:', issue.value)
-  loading.value = false
+  try {
+    const response = await fetch('/api/submit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email.value,
+        problemDescription: issue.value,
+      }),
+    })
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+    }
+    const result = await response.json()
+    console.warn('Submission successful:', result)
+    // Handle successful submission, e.g., show a success message
+  }
+  catch (error) {
+    console.error('Submission error:', error)
+    // Handle submission error, e.g., show an error message
+  }
+  finally {
+    loading.value = false
+  }
   // Add your submit logic (e.g., API call) here
 }
 </script>
+
+<template>
+  <div class="form-container">
+    <div v-if="loading" class="loading-overlay">
+      <div class="spinner" />
+      <span>Submitting...</span>
+    </div>
+    <label>
+      Email:
+      <input v-model="email" type="email" placeholder="Enter your email" :disabled="loading" @input="validateForm">
+    </label>
+    <label>
+      Problem Description:
+      <textarea v-model="issue" placeholder="Describe your issue" :disabled="loading" @input="validateForm" />
+    </label>
+    <button
+      :disabled="!isValid || loading"
+      :class="{ disabled: !isValid || loading }"
+      @click="submitForm"
+    >
+      Submit
+    </button>
+  </div>
+</template>
 
 <style scoped>
 .form-container {
@@ -62,7 +84,9 @@ async function submitForm() {
   background: #fff;
   border-radius: 32px;
   padding: 4.5rem 3rem;
-  box-shadow: 0 16px 48px 0 rgba(60, 60, 60, 0.22), 0 4px 16px 0 rgba(0,0,0,0.13);
+  box-shadow:
+    0 16px 48px 0 rgba(60, 60, 60, 0.22),
+    0 4px 16px 0 rgba(0, 0, 0, 0.13);
   color: #222;
   font-size: 0.95rem;
 }
@@ -70,7 +94,7 @@ async function submitForm() {
 .loading-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(255,255,255,0.85);
+  background: rgba(255, 255, 255, 0.85);
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -84,8 +108,12 @@ async function submitForm() {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .spinner {
@@ -99,8 +127,12 @@ async function submitForm() {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg);}
-  100% { transform: rotate(360deg);}
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 label {
@@ -112,7 +144,8 @@ label {
   color: #222;
 }
 
-input, textarea {
+input,
+textarea {
   margin-top: 0.4rem;
   width: 100%;
   padding: 0.65rem 0.9rem;
@@ -121,14 +154,20 @@ input, textarea {
   border-radius: 8px;
   background: #f5f7fa;
   color: #222;
-  transition: background 0.3s, box-shadow 0.3s, transform 0.2s;
-  box-shadow: 0 2px 8px rgba(60,60,60,0.07);
+  transition:
+    background 0.3s,
+    box-shadow 0.3s,
+    transform 0.2s;
+  box-shadow: 0 2px 8px rgba(60, 60, 60, 0.07);
   outline: none;
 }
 
-input:focus, textarea:focus {
+input:focus,
+textarea:focus {
   background: #e3e9f1;
-  box-shadow: 0 0 0 2px #3a7bd5, 0 2px 8px rgba(60,60,60,0.12);
+  box-shadow:
+    0 0 0 2px #3a7bd5,
+    0 2px 8px rgba(60, 60, 60, 0.12);
   transform: scale(1.02);
 }
 
@@ -141,8 +180,13 @@ button {
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(58,123,213,0.15), 0 1.5px 6px 0 rgba(0,0,0,0.10);
-  transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
+  box-shadow:
+    0 4px 16px rgba(58, 123, 213, 0.15),
+    0 1.5px 6px 0 rgba(0, 0, 0, 0.1);
+  transition:
+    background 0.3s,
+    transform 0.2s,
+    box-shadow 0.3s;
 }
 
 button.disabled,
@@ -156,7 +200,9 @@ button:disabled {
 button:hover:enabled {
   background: linear-gradient(90deg, #00c3ff 0%, #3a7bd5 100%);
   transform: translateY(-2px) scale(1.04);
-  box-shadow: 0 8px 24px rgba(58,123,213,0.22), 0 2px 8px rgba(0,0,0,0.13);
+  box-shadow:
+    0 8px 24px rgba(58, 123, 213, 0.22),
+    0 2px 8px rgba(0, 0, 0, 0.13);
 }
 
 ::placeholder {

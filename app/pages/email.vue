@@ -37,7 +37,7 @@ async function submitForm() {
     const { result } = await response.json()
 
     try {
-      const newResponse = await fetch('http://0.0.0.0:10001', {
+      const newResponse = await fetch('http://localhost:10001/run', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

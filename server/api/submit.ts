@@ -14,21 +14,27 @@ interface AppConfig {
   mcpServers: Record<string, McpServerConfig>
 }
 
-// This is the core logic of your agent, refactored to be callable
-// and to accept the query as a parameter.
-async function runMcpAgent(query: string, email: string): Promise<string | { error: string, details?: any }> {
+// This is the core logic of your agent
+async function runMcpAgent(problemDescription: string, userEmail: string): Promise<string | { error: string, details?: any }> {
   try {
     const githubToken = process.env.GITHUB_PERSONAL_ACCESS_TOKEN
     const anthropicApiKey = process.env.ANTHROPIC_API_KEY
+    const supabaseAccessToken = process.env.SUPABASE_ACCESS_TOKEN // <-- For Supabase MCP
 
-    if (!githubToken) {
-      console.error('GITHUB_PERSONAL_ACCESS_TOKEN is not set.')
-      return { error: 'Server configuration error: Missing GitHub token.' }
+    let errorMessage = ''
+    if (!githubToken)
+      errorMessage += 'GITHUB_PERSONAL_ACCESS_TOKEN is not set. '
+    if (!anthropicApiKey)
+      errorMessage += 'ANTHROPIC_API_KEY is not set. '
+    if (!supabaseAccessToken)
+      errorMessage += 'SUPABASE_ACCESS_TOKEN is not set. ' // <-- Check for Supabase token
+
+    if (errorMessage) {
+      console.error('Server configuration errors:', errorMessage)
+      return { error: `Server configuration error: ${errorMessage.trim()}` }
     }
-    if (!anthropicApiKey) {
-      console.error('ANTHROPIC_API_KEY is not set.')
-      return { error: 'Server configuration error: Missing Anthropic API key.' }
-    }
+
+    const supabaseProjectRef = 'vcisedfdaufqkvyvkfcy' // Define your project ref here
 
     const config: AppConfig = {
       mcpServers: {
@@ -36,75 +42,71 @@ async function runMcpAgent(query: string, email: string): Promise<string | { err
           command: 'docker',
           args: [
             'run',
-            '-i',
-            '--rm',
+            '-i', // Keep -i for interactive mode if the server expects stdin
+            '--rm', // Automatically remove the container when it exits
             '-e',
-            'GITHUB_PERSONAL_ACCESS_TOKEN',
+            'GITHUB_PERSONAL_ACCESS_TOKEN', // Docker will take this from the env passed by MCPClient
             '-e',
-            'GITHUB_TOOLSETS',
+            'GITHUB_TOOLSETS', // Docker will take this from the env passed by MCPClient
             'ghcr.io/github/github-mcp-server',
           ],
-          env: { // This ensures the MCP server process gets the token
+          env: {
             GITHUB_PERSONAL_ACCESS_TOKEN: githubToken,
-            GITHUB_TOOLSETS: 'repos,issues,pull_requests,code_security,experiments',
+            GITHUB_TOOLSETS: 'issues', // <--- MODIFIED: Only issues toolset
           },
+        },
+        supabase: { // <-- New Supabase MCP server configuration
+          command: 'npx', // Recommended way to run the official Supabase MCP server
+          args: [
+            '-y',
+            '@supabase/mcp-server-supabase@latest',
+            '--access-token',
+            supabaseAccessToken!,
+            '--project-ref',
+            supabaseProjectRef,
+          ],
         },
       },
     }
 
-    const client = MCPClient.fromDict(config) // Or your MCPClient initialization
+    const client = MCPClient.fromDict(config)
 
     const llm = new ChatAnthropic({
-      model: 'claude-3-opus-20240229', // Or your preferred Claude model
-      // apiKey: anthropicApiKey, // Usually picked from env, but can be explicit
-      temperature: 0.7,
+      model: 'claude-3-7-sonnet-latest',
+      temperature: 0.1,
     })
 
-    const agent = new MCPAgent({ llm, client, maxSteps: 30 })
+    const agent = new MCPAgent({ llm, client, maxSteps: 500 })
 
-    console.warn(`Running agent for email: ${email} with query: "${query}"`)
-    const result = await agent.run(query)
-    console.warn(`Agent result: ${result}`)
+    const comprehensiveQuery = `
+      Regarding the user with email "${userEmail}", the problem is: "${problemDescription}".
+      Do not run execute any update edge functions as we are only examining the data.
+      1. Connect to the Supabase project osaainbwkuzzqvvwklal and look at the products, user_cart_items, and users tables.
+      2. In the 'users' table, find the record where the 'email' column matches and retrieve the complete user object or relevant details for this user.
+      3. Once you have the user's information, report the issue.
+      Let me know the user's details you found.
+    `
+    const result = await agent.run(comprehensiveQuery) // Use the comprehensive query
     return result
   }
   catch (error: any) {
     console.error('Error running MCP agent:', error)
-    // Be careful about exposing raw error details to the client
     return { error: 'Agent execution failed.', details: error.message || String(error) }
   }
 }
 
 // Define the event handler for the /api/submit endpoint
 export default defineEventHandler(async (event) => {
-  // Determine the request method (e.g., POST)
   if (event.node.req.method !== 'POST') {
-    event.node.res.statusCode = 405 // Method Not Allowed
+    event.node.res.statusCode = 405
     return { error: 'Method Not Allowed. Please use POST.' }
   }
 
-  // Get the query from the request body
   const body = await readBody(event)
-  const userEmail = body.email
-  const problemDescription = body.problemDescription
+  const userEmail = body.email as string | undefined
+  const problemDescription = body.problemDescription as string | undefined
 
-  if (!userEmail || typeof userEmail !== 'string') {
-    event.node.res.statusCode = 400 // Bad Request
-    return { error: 'Missing or invalid "email" in request body.' }
-  }
+  const agentResult = await runMcpAgent(problemDescription!, userEmail!)
 
-  if (!problemDescription || typeof problemDescription !== 'string') {
-    event.node.res.statusCode = 400 // Bad Request
-    return { error: 'Missing or invalid "problemDescription" in request body.' }
-  }
-
-  // Run the agent
-  const agentResult = await runMcpAgent(problemDescription, userEmail)
-  if (typeof agentResult === 'string') {
-    return { success: true, result: agentResult }
-  }
-  else {
-    // If agentResult is an error object
-    event.node.res.statusCode = 500 // Internal Server Error
-    return { success: false, ...agentResult }
-  }
+  return { success: true, result: agentResult }
 })

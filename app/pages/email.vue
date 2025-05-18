@@ -34,9 +34,30 @@ async function submitForm() {
       const errorData = await response.json()
       throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
     }
-    const result = await response.json()
-    console.warn('Submission successful:', result)
-    // Handle successful submission, e.g., show a success message
+    const { result } = await response.json()
+
+    try {
+      const newResponse = await fetch('http://0.0.0.0:10001', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: `In the repo https://github.com/edshen17/mcp-hackathon. Can you create an issue based off this? ${result[0].text}
+          1. Write the user's name, email, and the issue.`,
+        }),
+      })
+      if (!newResponse.ok) {
+        const errorData = await newResponse.json()
+        throw new Error(errorData.error || `HTTP error! status: ${newResponse.status}`)
+      }
+      const newResult = await newResponse.json()
+      console.warn('Second submission successful:', newResult)
+    }
+    catch (error) {
+      console.error('Second submission error:', error)
+      // Handle submission error for the new request
+    }
   }
   catch (error) {
     console.error('Submission error:', error)

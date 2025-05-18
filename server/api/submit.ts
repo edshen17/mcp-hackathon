@@ -69,11 +69,9 @@ async function fetchSupabaseUserDetails(
       Do not run execute any update edge functions as we are only examining the data.
       1. Connect to the Supabase project osaainbwkuzzqvvwklal and look at the products, user_cart_items, and users tables.
       2. In the 'users' table, find the record where the 'email' column matches and retrieve the complete user object or relevant details for this user.
-      3. Once you have the user's information, report the issue. Let me know the user's details you found.
+      3. Once you have the user's information, report the issue in detail what you found.
     `
-    console.warn('Running Supabase agent with query:', supabaseQuery)
     const result = await agent.run(supabaseQuery)
-    console.warn('Supabase agent result:', result)
     return result
   }
   catch (error: any) {
@@ -167,14 +165,12 @@ export default defineEventHandler(async (event) => {
 
   // --- Call 1: Fetch Supabase Details ---
   const supabaseResult = await fetchSupabaseUserDetails(problemDescription!, userEmail!)
-  console.log(supabaseResult)
   const issueContext = (Array.isArray(supabaseResult) && supabaseResult.length > 0 && supabaseResult[0].text)
     ? supabaseResult[0].text
     : typeof supabaseResult === 'string' ? supabaseResult : 'Error: Could not extract text from Supabase result.'
 
-  // console.warn('Extracted issueContext:', issueContext) // Changed to console.warn
+  console.warn('Extracted issueContext:', issueContext) // Changed to console.warn
 
-  // --- Call 2: Create GitHub Issue ---
   const githubResult = await createGithubIssue(issueContext, userEmail!)
 
   if (typeof githubResult === 'object' && githubResult.error) {
